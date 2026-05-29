@@ -62,6 +62,7 @@
 | 20  | Companies page wired to Firestore     | GrowthOS   | `src/pages/Companies.jsx`                                    |
 | 21  | Search history section                | GrowthOS   | `src/pages/Jobs.jsx`, `src/services/careerData.js`           |
 | 22  | All Roles default filter              | GrowthOS   | `src/data/careerRoles.js`, `src/pages/Jobs.jsx`              |
+| 23  | Product Manager seed jobs             | GrowthOS   | `src/data/seed-jobs.js` (122 jobs total, 28 PM jobs)          |
 
 ### ✅ DONE — Manual / Deployment Steps
 
@@ -104,7 +105,7 @@
 
 | #   | Item                                      | Owner | Notes                                                                 |
 | --- | ----------------------------------------- | ----- | --------------------------------------------------------------------- |
-| R1  | Live PM job sourcing                      | Agent | Current seeded jobs are engineering-heavy; worker/scan needs PM inputs |
+| R1  | Live PM job sourcing                      | Agent | Seed data now includes PM jobs; Render worker still needs persistent scan inputs |
 | R2  | Report/PDF generation and upload          | Agent | Requires career-ops report/PDF pipeline wiring to Firebase Storage     |
 | R3  | Lock down seed write permissions          | Agent | After data is stable, change `jobs`/`companies` writes back to worker-only |
 | R4  | Recurring scans                           | User  | Needs Render cron/paid always-on decision or an external scheduler      |
