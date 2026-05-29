@@ -56,35 +56,58 @@
 | 14  | firebase-admin dependency added       | career-ops | `package.json`                                               |
 | 15  | Worker env vars documented            | career-ops | `.env.example`                                               |
 | 16  | GrowthOS env vars documented          | GrowthOS   | `.env.example`                                               |
+| 17  | Client-side jobs seed data            | GrowthOS   | `src/data/seed-jobs.js`                                      |
+| 18  | Client-side companies seed data       | GrowthOS   | `src/data/seedCompanies.js`                                  |
+| 19  | Jobs + companies Firestore seeding    | GrowthOS   | `src/services/careerData.js`, `src/pages/Jobs.jsx`           |
+| 20  | Companies page wired to Firestore     | GrowthOS   | `src/pages/Companies.jsx`                                    |
+| 21  | Search history section                | GrowthOS   | `src/pages/Jobs.jsx`, `src/services/careerData.js`           |
+| 22  | All Roles default filter              | GrowthOS   | `src/data/careerRoles.js`, `src/pages/Jobs.jsx`              |
 
-### ⏳ TODO — Manual Steps (You)
+### ✅ DONE — Manual / Deployment Steps
 
 | #   | Item                                    | Where                                                   | Notes                                                   |
 | --- | --------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------- |
-| M1  | Enable Google Sign-In provider          | Firebase Console → Auth → Sign-in method                | Toggle Google to "Enabled"                              |
-| M2  | Add Vercel domain to authorized domains | Firebase Console → Auth → Settings → Authorized domains | Add `personalgrowthos.vercel.app`                       |
-| M3  | Deploy Firestore rules                  | Terminal                                                | `firebase deploy --only firestore:rules`                |
-| M4  | Deploy Storage rules                    | Terminal                                                | `firebase deploy --only storage`                        |
-| M5  | Generate Firebase service account key   | Firebase Console → Project Settings → Service accounts  | Download JSON for Render worker                         |
-| M6  | Set Vercel env vars                     | Vercel Dashboard → Settings → Environment Variables     | See [Vercel Env Vars](#vercel-env-vars) below           |
-| M7  | Redeploy GrowthOS on Vercel             | Vercel Dashboard or `git push`                          | After env vars are set                                  |
-| M8  | Create Render/Railway service           | Render Dashboard                                        | See [Worker Deploy](#worker-deploy-renderrailway) below |
-| M9  | Set Render env vars                     | Render Dashboard → Environment                          | See [Worker Env Vars](#worker-env-vars) below           |
-| M10 | Run seed scripts                        | Terminal                                                | After worker is deployed (see below)                    |
-| M11 | Verify end-to-end flow                  | Browser                                                 | Sign in → Jobs tab → trigger search → see results       |
+| M1  | Enable Google Sign-In provider          | Firebase Console → Auth → Sign-in method                | Done                                                    |
+| M2  | Add Vercel domain to authorized domains | Firebase Console → Auth → Settings → Authorized domains | Done                                                    |
+| M3  | Deploy Firestore rules                  | Terminal                                                | Done; redeployed after companies seed write access      |
+| M4  | Deploy Storage rules                    | Terminal                                                | Done                                                    |
+| M5  | Generate Firebase service account key   | Firebase Console → Project Settings → Service accounts  | Done for Render worker                                  |
+| M6  | Set Vercel env vars                     | Vercel Dashboard → Settings → Environment Variables     | Done                                                    |
+| M7  | Redeploy GrowthOS on Vercel             | Vercel Dashboard or `git push`                          | Done via GitHub push                                    |
+| M8  | Create Render/Railway service           | Render Dashboard                                        | Done; worker health returns `{ "ok": true }`           |
+| M9  | Set Render env vars                     | Render Dashboard → Environment                          | Done                                                    |
+| M10 | Run seed scripts                        | Browser                                                 | Replaced with in-app "Seed career data" action         |
+
+### ⏳ TODO — Manual Verification (You)
+
+| #   | Item                       | Where   | Notes                                                                 |
+| --- | -------------------------- | ------- | --------------------------------------------------------------------- |
+| V1  | Verify Vercel redeploy     | Vercel  | Confirm latest commit deployed after each push                        |
+| V2  | Seed companies if missing  | Browser | Career → Jobs or Companies → "Seed career data"                      |
+| V3  | Verify All Roles results   | Browser | Career → Jobs → All Roles should show the seeded job list             |
+| V4  | Verify Companies Firestore | Browser | Career → Companies should show seeded Bellandur company targets       |
 
 ### 🔧 TODO — Code Changes (I Can Handle)
 
 | #   | Item                                          | Repo       | Status      | Depends on |
 | --- | --------------------------------------------- | ---------- | ----------- | ---------- |
-| C1  | Companies Firestore seed script               | career-ops | Not started | —          |
-| C2  | Jobs/pipeline Firestore seed script           | career-ops | Not started | —          |
-| C3  | Wire Companies page to Firestore              | GrowthOS   | Not started | M3, M10    |
+| C1  | Companies Firestore seed script               | GrowthOS   | Done        | —          |
+| C2  | Jobs/pipeline Firestore seed script           | GrowthOS   | Done        | —          |
+| C3  | Wire Companies page to Firestore              | GrowthOS   | Done        | M3, M10    |
 | C4  | Add Aanya/PM role keywords to portals.yml     | career-ops | Not started | —          |
 | C5  | Add report/PDF upload to worker sync          | career-ops | Not started | M5         |
-| C6  | Add loading skeleton to Jobs page             | GrowthOS   | Not started | —          |
-| C7  | Add "last scanned" timestamp to company cards | GrowthOS   | Not started | C3         |
-| C8  | Add search history page/section               | GrowthOS   | Not started | —          |
+| C6  | Add loading skeleton to Jobs page             | GrowthOS   | Deferred    | —          |
+| C7  | Add "last scanned" timestamp to company cards | GrowthOS   | Done        | C3         |
+| C8  | Add search history page/section               | GrowthOS   | Done        | —          |
+
+### ⏳ REMAINING — True End-to-End Search Gaps
+
+| #   | Item                                      | Owner | Notes                                                                 |
+| --- | ----------------------------------------- | ----- | --------------------------------------------------------------------- |
+| R1  | Live PM job sourcing                      | Agent | Current seeded jobs are engineering-heavy; worker/scan needs PM inputs |
+| R2  | Report/PDF generation and upload          | Agent | Requires career-ops report/PDF pipeline wiring to Firebase Storage     |
+| R3  | Lock down seed write permissions          | Agent | After data is stable, change `jobs`/`companies` writes back to worker-only |
+| R4  | Recurring scans                           | User  | Needs Render cron/paid always-on decision or an external scheduler      |
 
 ### 🚀 FUTURE — Phase 2 (Real-Time Search)
 

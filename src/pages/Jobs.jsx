@@ -17,6 +17,7 @@ import {
   seedCareerData,
   subscribeCareerJobs,
   subscribeCareerSearchRun,
+  subscribeCareerSearchRuns,
 } from "../services/careerData";
 import { useAuth } from "../context/AuthContext";
 
@@ -142,6 +143,7 @@ export default function Jobs() {
   const [jobs, setJobs] = useState([]);
   const [searchRunId, setSearchRunId] = useState("");
   const [searchRun, setSearchRun] = useState(null);
+  const [searchRuns, setSearchRuns] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingJobs, setIsLoadingJobs] = useState(
     !isSignedIn ? false : true,
@@ -184,6 +186,17 @@ export default function Jobs() {
     );
   }, [searchRunId]);
 
+  useEffect(() => {
+    if (!isSignedIn) {
+      setSearchRuns([]);
+      return undefined;
+    }
+
+    return subscribeCareerSearchRuns(setSearchRuns, (err) =>
+      setError(err.message),
+    );
+  }, [isSignedIn]);
+
   const visibleJobs = useMemo(() => {
     const normalizedQuery = queryText.trim().toLowerCase();
     if (!normalizedQuery) return jobs;
@@ -211,7 +224,7 @@ export default function Jobs() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!queryText.trim()) {
+    if (roleId !== "all" && !queryText.trim()) {
       setError("Enter a search query.");
       return;
     }
@@ -334,8 +347,7 @@ export default function Jobs() {
           </button>
           {seedResult && (
             <p style={{ marginTop: "0.75rem", color: "var(--accent)" }}>
-              Synced {seedResult.syncedCount} jobs ({seedResult.loadedCount}{" "}
-              loaded, {seedResult.matchedCount} matched)
+              Synced {seedResult.syncedJobs} jobs and {seedResult.syncedCompanies} companies.
             </p>
           )}
         </div>
@@ -352,6 +364,19 @@ export default function Jobs() {
             <span className="stat-label">Results</span>
           </div>
           {searchRun.error && <p className="job-error">{searchRun.error}</p>}
+        </div>
+      )}
+
+      {searchRuns.length > 0 && (
+        <div className="card">
+          <h3>Recent Searches</h3>
+          <div className="job-meta-grid">
+            {searchRuns.slice(0, 6).map((run) => (
+              <span key={run.id}>
+                {getCareerRole(run.roleId)?.label || run.roleId || "All Roles"}: {run.status} · {run.resultCount || 0} results · {formatDate(run.createdAt)}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 

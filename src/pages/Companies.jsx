@@ -1,88 +1,101 @@
-import { useState, useMemo } from "react";
-import { useStore } from "../store/useStore";
+import { useEffect, useMemo, useState } from "react";
+import { Database } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import { PROFILES, ZONE_LABELS } from "../data/constants";
+import { seedCareerData, subscribeCareerCompanies } from "../services/careerData";
+import { useStore } from "../store/useStore";
 
 const ZONES = ["doorstep", "close", "nearby", "far"];
-const READ_ONLY_CAREER_MVP = true;
+const PROFILE_ROLE_IDS = {
+  abhav: "mobile_frontend",
+  wife: "product_manager",
+};
+
+function formatDate(value) {
+  if (!value) return "-";
+  const date =
+    typeof value.toDate === "function" ? value.toDate() : new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
+}
+
+function matchesProfile(company, activeProfile) {
+  if (company.profile === activeProfile || company.profile === "both") return true;
+  const roleId = PROFILE_ROLE_IDS[activeProfile];
+  return Array.isArray(company.roleIds) && company.roleIds.includes(roleId);
+}
 
 export default function Companies() {
-  const {
-    activeProfile,
-    getAllCompanies,
-    addCompany,
-    deleteCompany,
-    customCompanies,
-  } = useStore();
+  const { user } = useAuth();
+  const isSignedIn = user && !user.isOffline;
+  const { activeProfile } = useStore();
   const profile = PROFILES[activeProfile];
 
+  const [companies, setCompanies] = useState([]);
   const [zoneFilter, setZoneFilter] = useState("all");
   const [topFit, setTopFit] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    area: "",
-    dist: "",
-    url: "",
-    tags: "",
-    zone: "close",
-    profile: "both",
-    priority: 2,
-  });
+  const [isLoading, setIsLoading] = useState(isSignedIn);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState(null);
+  const [error, setError] = useState("");
 
-  const allCompanies = getAllCompanies();
+  useEffect(() => {
+    if (!isSignedIn) {
+      setCompanies([]);
+      setIsLoading(false);
+      return undefined;
+    }
+
+    setIsLoading(true);
+    setError("");
+    return subscribeCareerCompanies(
+      "all",
+      (nextCompanies) => {
+        setCompanies(nextCompanies);
+        setIsLoading(false);
+      },
+      (err) => {
+        setError(err.message);
+        setIsLoading(false);
+      },
+    );
+  }, [isSignedIn]);
 
   const filtered = useMemo(() => {
-    let list = allCompanies.filter(
-      (c) => c.profile === activeProfile || c.profile === "both",
+    let list = companies.filter((company) =>
+      matchesProfile(company, activeProfile),
     );
     if (zoneFilter !== "all") {
-      list = list.filter((c) => c.zone === zoneFilter);
+      list = list.filter((company) => company.zone === zoneFilter);
     }
     if (topFit) {
-      list = list.filter((c) => c.priority === 3);
+      list = list.filter((company) => company.priority === 3);
     }
-    return list.sort((a, b) => a.dist - b.dist);
-  }, [allCompanies, activeProfile, zoneFilter, topFit]);
+    return [...list].sort((a, b) => (a.dist || 0) - (b.dist || 0));
+  }, [companies, activeProfile, zoneFilter, topFit]);
 
   const getCareerUrl = (company) => {
     const kw = encodeURIComponent(profile.defaultKw);
-    return company.url.replace("{{KW}}", kw);
+    return String(company.url || "#").replace("{{KW}}", kw);
   };
 
-  const handleAdd = () => {
-    if (!form.name.trim() || !form.url.trim()) return;
-    addCompany({
-      name: form.name,
-      area: form.area,
-      dist: Number(form.dist) || 0,
-      url: form.url,
-      tags: form.tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
-      zone: form.zone,
-      profile: form.profile,
-      priority: Number(form.priority),
-    });
-    setShowModal(false);
-    setForm({
-      name: "",
-      area: "",
-      dist: "",
-      url: "",
-      tags: "",
-      zone: "close",
-      profile: "both",
-      priority: 2,
-    });
+  const handleSeed = async () => {
+    setIsSeeding(true);
+    setError("");
+    setSeedResult(null);
+    try {
+      const result = await seedCareerData();
+      setSeedResult(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSeeding(false);
+    }
   };
-
-  const isCustom = (name) => customCompanies.some((c) => c.name === name);
 
   return (
     <div className="companies-page">
       <div className="page-header">
-        <h2>🏢 Target Companies</h2>
+        <h2>Target Companies</h2>
         <div className="header-actions">
           <div className="filter-bar">
             <button
@@ -91,30 +104,22 @@ export default function Companies() {
             >
               All
             </button>
-            {ZONES.map((z) => (
+            {ZONES.map((zone) => (
               <button
-                key={z}
-                className={`filter-btn${zoneFilter === z ? " active" : ""}`}
-                onClick={() => setZoneFilter(z)}
+                key={zone}
+                className={`filter-btn${zoneFilter === zone ? " active" : ""}`}
+                onClick={() => setZoneFilter(zone)}
               >
-                {ZONE_LABELS[z].split(" ")[0]}
+                {ZONE_LABELS[zone].split(" ")[1] || zone}
               </button>
             ))}
             <button
               className={`filter-btn${topFit ? " active" : ""}`}
               onClick={() => setTopFit(!topFit)}
             >
-              ⭐ Top Fit
+              Top Fit
             </button>
           </div>
-          {!READ_ONLY_CAREER_MVP && (
-            <button
-              className="btn btn-accent"
-              onClick={() => setShowModal(true)}
-            >
-              ＋ Add Company
-            </button>
-          )}
         </div>
       </div>
 
@@ -124,158 +129,86 @@ export default function Companies() {
         {topFit && " · Top Priority Only"}
       </p>
 
-      {/* Company Grid */}
+      {!isSignedIn && (
+        <div className="empty-state">
+          Sign in with email/password or Google to view Firestore career companies.
+        </div>
+      )}
+
+      {isSignedIn && companies.length === 0 && !isLoading && (
+        <div className="card" style={{ textAlign: "center", padding: "1.5rem" }}>
+          <p style={{ marginBottom: "0.75rem" }}>
+            No companies in Firestore yet. Seed target companies and jobs?
+          </p>
+          <button
+            className="btn btn-accent"
+            onClick={handleSeed}
+            disabled={isSeeding}
+          >
+            <Database size={15} />
+            {isSeeding ? "Seeding..." : "Seed career data"}
+          </button>
+          {seedResult && (
+            <p style={{ marginTop: "0.75rem", color: "var(--accent)" }}>
+              Synced {seedResult.syncedCompanies} companies and {seedResult.syncedJobs} jobs.
+            </p>
+          )}
+        </div>
+      )}
+
+      {error && (
+        <div className="empty-state job-error" role="alert">
+          {error}
+        </div>
+      )}
+
+      {isLoading && <div className="empty-state">Loading companies...</div>}
+
       <div className="company-grid">
-        {filtered.map((c) => (
-          <div key={c.name} className={`company-card zone-${c.zone}`}>
+        {filtered.map((company) => (
+          <div key={company.id || company.name} className={`company-card zone-${company.zone}`}>
             <div className="ccard-top">
-              <strong>{c.name}</strong>
+              <strong>{company.name}</strong>
               <div className="priority-dots">
-                {[1, 2, 3].map((i) => (
+                {[1, 2, 3].map((level) => (
                   <span
-                    key={i}
-                    className={`dot${i <= c.priority ? " filled" : ""}`}
+                    key={level}
+                    className={`dot${level <= (company.priority || 1) ? " filled" : ""}`}
                   />
                 ))}
               </div>
             </div>
             <span className="ccard-area">
-              📍 {c.area} · {c.dist}km
+              {company.area || "Bengaluru"} · {company.dist ?? "-"}km
             </span>
             <div className="ccard-tags">
-              {(c.tags || []).map((t) => (
-                <span key={t} className="tag">
-                  {t}
+              {(company.tags || []).slice(0, 5).map((tag) => (
+                <span key={tag} className="tag">
+                  {tag}
                 </span>
               ))}
             </div>
+            <div className="job-meta-grid">
+              <span>Last scanned: {formatDate(company.lastScannedAt || company.updatedAt)}</span>
+              <span>Roles: {(company.roleIds || []).length || "-"}</span>
+            </div>
             <div className="ccard-bottom">
               <a
-                href={getCareerUrl(c)}
+                href={getCareerUrl(company)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-sm"
               >
-                Careers →
+                Careers
               </a>
-              {!READ_ONLY_CAREER_MVP && isCustom(c.name) && (
-                <button
-                  className="btn btn-sm btn-danger"
-                  onClick={() => deleteCompany(c.name)}
-                >
-                  Remove
-                </button>
-              )}
             </div>
           </div>
         ))}
       </div>
 
-      {filtered.length === 0 && (
+      {isSignedIn && !isLoading && filtered.length === 0 && companies.length > 0 && (
         <div className="empty-state">
           <p>No companies match the current filters.</p>
-        </div>
-      )}
-
-      {/* Add Company Modal */}
-      {!READ_ONLY_CAREER_MVP && showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Add Company</h3>
-            <div className="form-grid">
-              <div className="field">
-                <label>Company Name *</label>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Company name"
-                />
-              </div>
-              <div className="field">
-                <label>Careers URL *</label>
-                <input
-                  value={form.url}
-                  onChange={(e) => setForm({ ...form, url: e.target.value })}
-                  placeholder="https://... (use {{KW}} for keyword)"
-                />
-              </div>
-              <div className="field">
-                <label>Area</label>
-                <input
-                  value={form.area}
-                  onChange={(e) => setForm({ ...form, area: e.target.value })}
-                  placeholder="e.g. Koramangala"
-                />
-              </div>
-              <div className="field">
-                <label>Distance (km)</label>
-                <input
-                  type="number"
-                  value={form.dist}
-                  onChange={(e) => setForm({ ...form, dist: e.target.value })}
-                  placeholder="e.g. 5"
-                />
-              </div>
-              <div className="field">
-                <label>Zone</label>
-                <select
-                  value={form.zone}
-                  onChange={(e) => setForm({ ...form, zone: e.target.value })}
-                >
-                  {ZONES.map((z) => (
-                    <option key={z} value={z}>
-                      {ZONE_LABELS[z]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label>Profile</label>
-                <select
-                  value={form.profile}
-                  onChange={(e) =>
-                    setForm({ ...form, profile: e.target.value })
-                  }
-                >
-                  <option value="both">Both</option>
-                  <option value="abhav">Abhav</option>
-                  <option value="wife">Wife (PM)</option>
-                </select>
-              </div>
-              <div className="field">
-                <label>Priority (1-3)</label>
-                <select
-                  value={form.priority}
-                  onChange={(e) =>
-                    setForm({ ...form, priority: Number(e.target.value) })
-                  }
-                >
-                  <option value="1">1 - Low</option>
-                  <option value="2">2 - Medium</option>
-                  <option value="3">3 - High</option>
-                </select>
-              </div>
-              <div className="field">
-                <label>Tags (comma separated)</label>
-                <input
-                  value={form.tags}
-                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                  placeholder="e.g. RN, Fintech, PM"
-                />
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowModal(false)}
-              >
-                Cancel
-              </button>
-              <button className="btn btn-accent" onClick={handleAdd}>
-                Add Company
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

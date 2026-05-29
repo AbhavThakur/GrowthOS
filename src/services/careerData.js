@@ -12,6 +12,8 @@ import {
 } from "firebase/firestore";
 import { getDownloadURL, ref } from "firebase/storage";
 import { auth, db, storage } from "../firebase";
+import { DEFAULT_COMPANIES } from "../data/companies";
+import seedCompaniesData from "../data/seedCompanies";
 import seedJobsData from "../data/seed-jobs.js";
 
 const CAREER_API_BASE_URL = import.meta.env.VITE_CAREER_API_BASE_URL?.replace(
@@ -55,6 +57,43 @@ function roleConstraints(roleId) {
   return roleId && roleId !== "all"
     ? [where("roleIds", "array-contains", roleId)]
     : [];
+}
+
+function slugify(value) {
+  return (
+    String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "unknown"
+  );
+}
+
+function roleIdsForCompany(company) {
+  if (Array.isArray(company.roleIds) && company.roleIds.length > 0) {
+    return company.roleIds;
+  }
+  if (company.profile === "abhav") return ["mobile_frontend"];
+  if (company.profile === "wife") return ["product_manager"];
+  return ["mobile_frontend", "product_manager"];
+}
+
+function uniqueSeedCompanies() {
+  const byId = new Map();
+  for (const company of [...DEFAULT_COMPANIES, ...seedCompaniesData]) {
+    const id = company.id || slugify(company.name);
+    const existing = byId.get(id);
+    byId.set(id, {
+      ...existing,
+      ...company,
+      id,
+      roleIds: roleIdsForCompany(company),
+      tags: [...new Set([...(existing?.tags || []), ...(company.tags || [])])],
+      priority: Math.max(existing?.priority || 0, company.priority || 1),
+      seededAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+  return [...byId.values()];
 }
 
 function notifyConfigError(onChange, onError) {
@@ -160,6 +199,30 @@ export function subscribeCareerSearchRun(searchRunId, onChange, onError) {
   );
 }
 
+export function subscribeCareerSearchRuns(onChange, onError) {
+  if (!db) return notifyConfigError(onChange, onError);
+  const uid = auth?.currentUser?.uid;
+  if (!uid) {
+    onChange([]);
+    return () => {};
+  }
+
+  return onSnapshot(
+    query(
+      collection(db, "searchRuns"),
+      where("requestedBy", "==", uid),
+      limit(20),
+    ),
+    (snapshot) => {
+      const runs = snapshot.docs
+        .map(withId)
+        .sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
+      onChange(runs);
+    },
+    onError,
+  );
+}
+
 export async function getCareerStorageUrl(storagePath) {
   if (!storagePath) return null;
   if (/^https?:\/\//.test(storagePath)) return storagePath;
@@ -171,8 +234,10 @@ export async function getCareerStorageUrl(storagePath) {
 export async function seedCareerData() {
   const firestore = requireFirestore();
   const seedJobs = seedJobsData;
+  const seedCompanies = uniqueSeedCompanies();
 
-  let synced = 0;
+  let syncedJobs = 0;
+  let syncedCompanies = 0;
   const batchSize = 450;
 
   for (let i = 0; i < seedJobs.length; i += batchSize) {
@@ -192,11 +257,24 @@ export async function seedCareerData() {
       );
     });
     await Promise.all(promises);
-    synced += batch.length;
+    syncedJobs += batch.length;
+  }
+
+  for (let i = 0; i < seedCompanies.length; i += batchSize) {
+    const batch = seedCompanies.slice(i, i + batchSize);
+    const promises = batch.map((company) => {
+      const { id, ...data } = company;
+      const docRef = doc(firestore, "companies", id);
+      return setDoc(docRef, data, { merge: true });
+    });
+    await Promise.all(promises);
+    syncedCompanies += batch.length;
   }
 
   return {
-    syncedCount: synced,
+    syncedCount: syncedJobs,
+    syncedJobs,
+    syncedCompanies,
     loadedCount: seedJobs.length,
     matchedCount: seedJobs.length,
   };
