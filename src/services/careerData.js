@@ -12,7 +12,7 @@ import {
 } from "firebase/firestore";
 import { getDownloadURL, ref } from "firebase/storage";
 import { auth, db, storage } from "../firebase";
-import seedJobsData from "../data/seed-jobs.json";
+import seedJobsData from "../data/seed-jobs.js";
 
 const CAREER_API_BASE_URL = import.meta.env.VITE_CAREER_API_BASE_URL?.replace(
   /\/$/,
