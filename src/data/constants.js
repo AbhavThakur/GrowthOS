@@ -1,6 +1,6 @@
 export const PROFILES = {
   abhav: {
-    name: "Abhav",
+    name: "Mobile / Frontend",
     subtitle: "React Native / Mobile Developer · Bengaluru · 30+ LPA target",
     defaultKw: "React Native",
     quickSearches: [
@@ -17,7 +17,7 @@ export const PROFILES = {
     ],
   },
   wife: {
-    name: "Wife",
+    name: "Product Manager",
     subtitle: "Product Manager · Bengaluru · 30+ LPA target",
     defaultKw: "Product Manager",
     quickSearches: [

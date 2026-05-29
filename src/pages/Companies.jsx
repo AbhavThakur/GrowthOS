@@ -3,6 +3,7 @@ import { useStore } from "../store/useStore";
 import { PROFILES, ZONE_LABELS } from "../data/constants";
 
 const ZONES = ["doorstep", "close", "nearby", "far"];
+const READ_ONLY_CAREER_MVP = true;
 
 export default function Companies() {
   const {
@@ -106,9 +107,14 @@ export default function Companies() {
               ⭐ Top Fit
             </button>
           </div>
-          <button className="btn btn-accent" onClick={() => setShowModal(true)}>
-            ＋ Add Company
-          </button>
+          {!READ_ONLY_CAREER_MVP && (
+            <button
+              className="btn btn-accent"
+              onClick={() => setShowModal(true)}
+            >
+              ＋ Add Company
+            </button>
+          )}
         </div>
       </div>
 
@@ -152,7 +158,7 @@ export default function Companies() {
               >
                 Careers →
               </a>
-              {isCustom(c.name) && (
+              {!READ_ONLY_CAREER_MVP && isCustom(c.name) && (
                 <button
                   className="btn btn-sm btn-danger"
                   onClick={() => deleteCompany(c.name)}
@@ -172,7 +178,7 @@ export default function Companies() {
       )}
 
       {/* Add Company Modal */}
-      {showModal && (
+      {!READ_ONLY_CAREER_MVP && showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Add Company</h3>

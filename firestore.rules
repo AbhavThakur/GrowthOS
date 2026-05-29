@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsRequestedSearchRun() {
+      return signedIn() && resource.data.requestedBy == request.auth.uid;
+    }
+
+    function createsOwnQueuedSearchRun() {
+      return signedIn()
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.status == 'queued';
+    }
+
+    match /roles/{roleId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /companies/{companyId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /jobs/{jobId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /reports/{reportId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /searchRuns/{searchRunId} {
+      allow create: if createsOwnQueuedSearchRun();
+      allow read: if ownsRequestedSearchRun();
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

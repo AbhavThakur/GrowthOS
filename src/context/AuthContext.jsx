@@ -8,10 +8,17 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
   setPersistence,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 import { auth } from "../firebase";
 
 const AuthContext = createContext(null);
+const googleProvider = new GoogleAuthProvider();
+const ALLOWED_AUTH_EMAILS = (import.meta.env.VITE_ALLOWED_AUTH_EMAILS || "")
+  .split(",")
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
 
 // Lightweight offline user — lets the app run fully without Firebase
 const OFFLINE_USER = {
@@ -20,6 +27,15 @@ const OFFLINE_USER = {
   displayName: "Local Mode",
   isOffline: true,
 };
+
+async function assertAllowedUser(firebaseUser) {
+  if (ALLOWED_AUTH_EMAILS.length === 0) return;
+  const email = firebaseUser?.email?.toLowerCase();
+  if (email && ALLOWED_AUTH_EMAILS.includes(email)) return;
+
+  await signOut(auth);
+  throw new Error("auth/unauthorized-email");
+}
 
 export function AuthProvider({ children }) {
   // undefined  = still resolving
@@ -39,12 +55,26 @@ export function AuthProvider({ children }) {
       auth,
       remember ? browserLocalPersistence : browserSessionPersistence,
     );
-    return signInWithEmailAndPassword(auth, email, password);
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    await assertAllowedUser(result.user);
+    return result;
   };
 
   const signup = async (email, password) => {
     await setPersistence(auth, browserLocalPersistence);
-    return createUserWithEmailAndPassword(auth, email, password);
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    await assertAllowedUser(result.user);
+    return result;
+  };
+
+  const loginWithGoogle = async (remember = true) => {
+    await setPersistence(
+      auth,
+      remember ? browserLocalPersistence : browserSessionPersistence,
+    );
+    const result = await signInWithPopup(auth, googleProvider);
+    await assertAllowedUser(result.user);
+    return result;
   };
 
   const resetPassword = (email) => sendPasswordResetEmail(auth, email);
@@ -61,7 +91,15 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, signup, resetPassword, continueOffline, logout }}
+      value={{
+        user,
+        login,
+        signup,
+        loginWithGoogle,
+        resetPassword,
+        continueOffline,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
 // These will be pulled from your .env file
@@ -13,7 +14,7 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-let app, auth, db;
+let app, auth, db, storage;
 
 // Guard: only initialize Firebase if the API key is present.
 // Without this check, initializeApp() succeeds with undefined values but
@@ -23,6 +24,7 @@ if (import.meta.env.VITE_FIREBASE_API_KEY) {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
   } catch {
     console.warn(
       "Firebase not properly initialized. Make sure your .env variables are set.",
@@ -34,4 +36,4 @@ if (import.meta.env.VITE_FIREBASE_API_KEY) {
   );
 }
 
-export { app, auth, db };
+export { app, auth, db, storage };
