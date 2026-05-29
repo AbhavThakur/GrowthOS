@@ -317,8 +317,13 @@ export default function Jobs() {
       )}
 
       {isSignedIn && jobs.length === 0 && !isLoadingJobs && (
-        <div className="card" style={{ textAlign: "center", padding: "1.5rem" }}>
-          <p style={{ marginBottom: "0.75rem" }}>No jobs in Firestore yet. Seed existing career-ops data?</p>
+        <div
+          className="card"
+          style={{ textAlign: "center", padding: "1.5rem" }}
+        >
+          <p style={{ marginBottom: "0.75rem" }}>
+            No jobs in Firestore yet. Seed existing career-ops data?
+          </p>
           <button
             className="btn btn-accent"
             onClick={handleSeed}
@@ -329,7 +334,8 @@ export default function Jobs() {
           </button>
           {seedResult && (
             <p style={{ marginTop: "0.75rem", color: "var(--accent)" }}>
-              Synced {seedResult.syncedCount} jobs ({seedResult.loadedCount} loaded, {seedResult.matchedCount} matched)
+              Synced {seedResult.syncedCount} jobs ({seedResult.loadedCount}{" "}
+              loaded, {seedResult.matchedCount} matched)
             </p>
           )}
         </div>

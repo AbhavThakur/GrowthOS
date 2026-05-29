@@ -7,6 +7,7 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
+  setDoc,
   where,
 } from "firebase/firestore";
 import { getDownloadURL, ref } from "firebase/storage";
@@ -167,23 +168,27 @@ export async function getCareerStorageUrl(storagePath) {
 }
 
 export async function seedCareerData() {
-  if (!CAREER_API_BASE_URL) {
-    throw new Error("VITE_CAREER_API_BASE_URL is not configured.");
+  const firestore = requireFirestore();
+  const { default: seedJobs } = await import("../data/seed-jobs.json");
+
+  let synced = 0;
+  const batchSize = 450;
+
+  for (let i = 0; i < seedJobs.length; i += batchSize) {
+    const batch = seedJobs.slice(i, i + batchSize);
+    const promises = batch.map((job) => {
+      const { id, ...data } = job;
+      const docRef = doc(firestore, "jobs", id);
+      return setDoc(docRef, {
+        ...data,
+        firstSeenAt: data.firstSeenAt || new Date().toISOString(),
+        lastScannedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    });
+    await Promise.all(promises);
+    synced += batch.length;
   }
 
-  const token = await auth?.currentUser?.getIdToken?.();
-  const response = await fetch(`${CAREER_API_BASE_URL}/api/seed`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Seed failed: ${errorText || response.statusText}`);
-  }
-
-  return response.json();
+  return { syncedCount: synced, loadedCount: seedJobs.length, matchedCount: seedJobs.length };
 }
