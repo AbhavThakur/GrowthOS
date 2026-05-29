@@ -329,13 +329,15 @@ export default function Jobs() {
         </div>
       )}
 
-      {isSignedIn && jobs.length === 0 && !isLoadingJobs && (
+      {isSignedIn && !isLoadingJobs && (
         <div
           className="card"
           style={{ textAlign: "center", padding: "1.5rem" }}
         >
           <p style={{ marginBottom: "0.75rem" }}>
-            No jobs in Firestore yet. Seed existing career-ops data?
+            {jobs.length === 0
+              ? "No jobs in Firestore yet. Seed existing career-ops data?"
+              : "Refresh Firestore with the latest career-ops seed snapshot."}
           </p>
           <button
             className="btn btn-accent"
@@ -343,7 +345,7 @@ export default function Jobs() {
             disabled={isSeeding}
           >
             <Database size={15} />
-            {isSeeding ? "Seeding..." : "Seed jobs from career-ops"}
+            {isSeeding ? "Refreshing..." : "Refresh career data"}
           </button>
           {seedResult && (
             <p style={{ marginTop: "0.75rem", color: "var(--accent)" }}>

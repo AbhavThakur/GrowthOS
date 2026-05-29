@@ -135,10 +135,12 @@ export default function Companies() {
         </div>
       )}
 
-      {isSignedIn && companies.length === 0 && !isLoading && (
+      {isSignedIn && !isLoading && (
         <div className="card" style={{ textAlign: "center", padding: "1.5rem" }}>
           <p style={{ marginBottom: "0.75rem" }}>
-            No companies in Firestore yet. Seed target companies and jobs?
+            {companies.length === 0
+              ? "No companies in Firestore yet. Seed target companies and jobs?"
+              : "Refresh Firestore with the latest career-ops seed snapshot."}
           </p>
           <button
             className="btn btn-accent"
@@ -146,7 +148,7 @@ export default function Companies() {
             disabled={isSeeding}
           >
             <Database size={15} />
-            {isSeeding ? "Seeding..." : "Seed career data"}
+            {isSeeding ? "Refreshing..." : "Refresh career data"}
           </button>
           {seedResult && (
             <p style={{ marginTop: "0.75rem", color: "var(--accent)" }}>
