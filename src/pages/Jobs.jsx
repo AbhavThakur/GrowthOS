@@ -11,6 +11,7 @@ import {
   subscribeCareerJobs,
   subscribeCareerSearchRun,
 } from "../services/careerData";
+import { useAuth } from "../context/AuthContext";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -125,6 +126,8 @@ function JobCard({ job }) {
 }
 
 export default function Jobs() {
+  const { user } = useAuth();
+  const isSignedIn = user && !user.isOffline;
   const [roleId, setRoleId] = useState(DEFAULT_CAREER_ROLE_ID);
   const [queryText, setQueryText] = useState("React Native");
   const [location, setLocation] = useState("Bengaluru");
@@ -133,7 +136,9 @@ export default function Jobs() {
   const [searchRunId, setSearchRunId] = useState("");
   const [searchRun, setSearchRun] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(
+    !isSignedIn ? false : true,
+  );
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -142,6 +147,12 @@ export default function Jobs() {
   }, [roleId]);
 
   useEffect(() => {
+    if (!isSignedIn) {
+      setJobs([]);
+      setIsLoadingJobs(false);
+      return undefined;
+    }
+
     setIsLoadingJobs(true);
     setError("");
 
@@ -156,7 +167,7 @@ export default function Jobs() {
         setIsLoadingJobs(false);
       },
     );
-  }, [roleId]);
+  }, [roleId, isSignedIn]);
 
   useEffect(() => {
     if (!searchRunId) return undefined;
@@ -263,11 +274,23 @@ export default function Jobs() {
             />
           </div>
         </div>
-        <button className="btn btn-accent" type="submit" disabled={isSearching}>
+        <button
+          className="btn btn-accent"
+          type="submit"
+          disabled={isSearching || !isSignedIn}
+        >
           <Search size={15} />
           {isSearching ? "Starting search..." : "Start async search"}
         </button>
       </form>
+
+      {!isSignedIn && (
+        <div className="card" style={{ textAlign: "center", padding: "2rem" }}>
+          <p>
+            Sign in with Google to search jobs and view results from Firestore.
+          </p>
+        </div>
+      )}
 
       {searchRun && (
         <div className="card search-status-card">
