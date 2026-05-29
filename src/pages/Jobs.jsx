@@ -136,7 +136,7 @@ export default function Jobs() {
   const { user } = useAuth();
   const isSignedIn = user && !user.isOffline;
   const [roleId, setRoleId] = useState(DEFAULT_CAREER_ROLE_ID);
-  const [queryText, setQueryText] = useState("React Native");
+  const [queryText, setQueryText] = useState("");
   const [location, setLocation] = useState("Bengaluru");
   const [radiusKm, setRadiusKm] = useState(20);
   const [jobs, setJobs] = useState([]);

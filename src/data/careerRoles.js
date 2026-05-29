@@ -1,5 +1,10 @@
 export const CAREER_ROLES = [
   {
+    id: "all",
+    label: "All Roles",
+    keywords: [],
+  },
+  {
     id: "mobile_frontend",
     label: "Mobile / Frontend",
     keywords: ["React Native", "Mobile", "Frontend", "iOS", "Android"],
@@ -17,7 +22,7 @@ export const CAREER_ROLES = [
   },
 ];
 
-export const DEFAULT_CAREER_ROLE_ID = "mobile_frontend";
+export const DEFAULT_CAREER_ROLE_ID = "all";
 
 export function getCareerRole(roleId) {
   return CAREER_ROLES.find((role) => role.id === roleId) || null;
