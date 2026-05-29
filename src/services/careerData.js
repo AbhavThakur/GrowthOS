@@ -165,3 +165,25 @@ export async function getCareerStorageUrl(storagePath) {
 
   return getDownloadURL(ref(storage, storagePath));
 }
+
+export async function seedCareerData() {
+  if (!CAREER_API_BASE_URL) {
+    throw new Error("VITE_CAREER_API_BASE_URL is not configured.");
+  }
+
+  const token = await auth?.currentUser?.getIdToken?.();
+  const response = await fetch(`${CAREER_API_BASE_URL}/api/seed`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Seed failed: ${errorText || response.statusText}`);
+  }
+
+  return response.json();
+}

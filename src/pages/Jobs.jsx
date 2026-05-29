@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, FileDown, FileText, Search } from "lucide-react";
+import {
+  Database,
+  ExternalLink,
+  FileDown,
+  FileText,
+  Search,
+} from "lucide-react";
 import {
   CAREER_ROLES,
   DEFAULT_CAREER_ROLE_ID,
@@ -8,6 +14,7 @@ import {
 import {
   createCareerSearchRun,
   getCareerStorageUrl,
+  seedCareerData,
   subscribeCareerJobs,
   subscribeCareerSearchRun,
 } from "../services/careerData";
@@ -198,6 +205,9 @@ export default function Jobs() {
     });
   }, [jobs, queryText]);
 
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState(null);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -221,6 +231,20 @@ export default function Jobs() {
       setError(err.message);
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleSeed = async () => {
+    setIsSeeding(true);
+    setError("");
+    setSeedResult(null);
+    try {
+      const result = await seedCareerData();
+      setSeedResult(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSeeding(false);
     }
   };
 
@@ -289,6 +313,25 @@ export default function Jobs() {
           <p>
             Sign in with Google to search jobs and view results from Firestore.
           </p>
+        </div>
+      )}
+
+      {isSignedIn && jobs.length === 0 && !isLoadingJobs && (
+        <div className="card" style={{ textAlign: "center", padding: "1.5rem" }}>
+          <p style={{ marginBottom: "0.75rem" }}>No jobs in Firestore yet. Seed existing career-ops data?</p>
+          <button
+            className="btn btn-accent"
+            onClick={handleSeed}
+            disabled={isSeeding}
+          >
+            <Database size={15} />
+            {isSeeding ? "Seeding..." : "Seed jobs from career-ops"}
+          </button>
+          {seedResult && (
+            <p style={{ marginTop: "0.75rem", color: "var(--accent)" }}>
+              Synced {seedResult.syncedCount} jobs ({seedResult.loadedCount} loaded, {seedResult.matchedCount} matched)
+            </p>
+          )}
         </div>
       )}
 
