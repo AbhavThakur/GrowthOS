@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { getDownloadURL, ref } from "firebase/storage";
 import { auth, db, storage } from "../firebase";
+import seedJobsData from "../data/seed-jobs.json";
 
 const CAREER_API_BASE_URL = import.meta.env.VITE_CAREER_API_BASE_URL?.replace(
   /\/$/,
@@ -169,7 +170,7 @@ export async function getCareerStorageUrl(storagePath) {
 
 export async function seedCareerData() {
   const firestore = requireFirestore();
-  const { default: seedJobs } = await import("../data/seed-jobs.json");
+  const seedJobs = seedJobsData;
 
   let synced = 0;
   const batchSize = 450;
@@ -179,16 +180,24 @@ export async function seedCareerData() {
     const promises = batch.map((job) => {
       const { id, ...data } = job;
       const docRef = doc(firestore, "jobs", id);
-      return setDoc(docRef, {
-        ...data,
-        firstSeenAt: data.firstSeenAt || new Date().toISOString(),
-        lastScannedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
+      return setDoc(
+        docRef,
+        {
+          ...data,
+          firstSeenAt: data.firstSeenAt || new Date().toISOString(),
+          lastScannedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
     });
     await Promise.all(promises);
     synced += batch.length;
   }
 
-  return { syncedCount: synced, loadedCount: seedJobs.length, matchedCount: seedJobs.length };
+  return {
+    syncedCount: synced,
+    loadedCount: seedJobs.length,
+    matchedCount: seedJobs.length,
+  };
 }
